@@ -4,7 +4,8 @@ defmodule UUIDInt do
   the generated UUID.
   """
 
-  @uuid_bit_size 16 * 8
+  @uuid_byte_size 16
+  @bytes_for_size 1
 
   @doc """
   Encode an unsigned integer into a UUID
@@ -12,21 +13,21 @@ defmodule UUIDInt do
   ## Examples
 
       iex> UUIDInt.encode(3)
-      {:ok, "86666835-06aa-cd90-0bbd-5a74ac4e0308"}
+      {:ok, "86666835-06aa-cd90-0bbd-5a74ac4e0301"}
       iex> UUIDInt.encode(4322343)
-      {:ok, "07bfef02-a615-2803-edf7-8bc841f42718"}
+      {:ok, "07bfef02-a615-2803-edf7-8bc841f42703"}
       iex> UUIDInt.encode(1329227995784915872903807060280344575)
-      {:ok, "ffffffff-ffff-ffff-ffff-ffffffffff78"}
+      {:ok, "ffffffff-ffff-ffff-ffff-ffffffffff0f"}
 
   """
   ## prefix (md5(uint)) + uint (var) + bit size of uint (2 chars)
 
   def encode(uint) do
-    bitsize = bitsize(uint)
-    input_bytes = << uint::size(bitsize) >>
+    bytesize = bytesize(uint)
+    input_bytes = << uint::size(bytesize)-unit(8) >>
 
-    prefix = prefix(input_bytes, bitsize + 8)
-    UUIDInt.UUIDHex.encode(prefix <> input_bytes <> << bitsize::size(8) >> )
+    prefix = prefix(input_bytes, bytesize + @bytes_for_size)
+    UUIDInt.UUIDHex.encode(prefix <> input_bytes <> << bytesize::size(8) >> )
   end
 
   @doc """
@@ -34,20 +35,20 @@ defmodule UUIDInt do
 
   ## Examples
 
-      iex> UUIDInt.decode("86666835-06aa-cd90-0bbd-5a74ac4e0308")
+      iex> UUIDInt.decode("86666835-06aa-cd90-0bbd-5a74ac4e0301")
       {:ok, 3}
-      iex> UUIDInt.decode("07bfef02-a615-2803-edf7-8bc841f42718")
+      iex> UUIDInt.decode("07bfef02-a615-2803-edf7-8bc841f42703")
       {:ok, 4322343}
-      iex> UUIDInt.decode("ffffffff-ffff-ffff-ffff-ffffffffff78")
+      iex> UUIDInt.decode("ffffffff-ffff-ffff-ffff-ffffffffff0f")
       {:ok, 1329227995784915872903807060280344575}
 
   """
   def decode(uuid) do
-    {:ok, << prefix_with_uint::binary-size(15), size::size(8) >>} = UUIDInt.UUIDHex.decode(uuid)
+    {:ok, << prefix_with_uint::binary-size(15), uint_bytesize::size(@bytes_for_size)-unit(8) >>} = UUIDInt.UUIDHex.decode(uuid)
 
-    prefix_byte_size = @uuid_bit_size - size - 8
+    prefix_byte_size = @uuid_byte_size - uint_bytesize - @bytes_for_size
 
-    << _prefix::size(prefix_byte_size), uint::size(size) >> = prefix_with_uint
+    << _prefix::binary-size(prefix_byte_size), uint::size(uint_bytesize)-unit(8) >> = prefix_with_uint
 
     {:ok, uint}
   end
@@ -60,21 +61,20 @@ defmodule UUIDInt do
 
 
   defp prefix(input_bytes, suffix_size) do
-    prefix_byte_size = (@uuid_bit_size - suffix_size) |> Kernel./(8) |> round
+    prefix_byte_size = @uuid_byte_size - suffix_size
     hash = :crypto.hash(:md5, input_bytes)
     << prefix::binary-size(prefix_byte_size), _rest::binary >>  = hash
     prefix
   end
 
 
-  defp bitsize(1), do: 8
-  defp bitsize(n) do
+  defp bytesize(1), do: 1
+  defp bytesize(n) do
     n              # e.g. 34
     |> :math.log2  # => 5.08 (number of bits required to store this)
     |> Kernel./(8) # => 0.63 (number of bytes required )
-    |> :math.ceil  # => 1.0  (number of whole nibbles)
+    |> :math.ceil  # => 1.0  (number of whole bytes)
     |> round       # => 1    (convert to int)
-    |> Kernel.*(8) # => 8    (number of bits in whole bytes)
   end
 
 

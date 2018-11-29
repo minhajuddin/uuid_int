@@ -6,13 +6,13 @@ defmodule UUIDIntTest do
 
   describe "#encode" do
     test "encodes int to uuid" do
-      assert UUIDInt.encode(3) == {:ok, "86666835-06aa-cd90-0bbd-5a74ac4e0308"}
+      assert UUIDInt.encode(3) == {:ok, "86666835-06aa-cd90-0bbd-5a74ac4e0301"}
     end
   end
 
   describe "#decode" do
     test "decodes uuid to int" do
-      assert UUIDInt.decode("86666835-06AA-cd90-0bbd-5a74ac4e0308") == {:ok, 3}
+      assert UUIDInt.decode("86666835-06AA-cd90-0bbd-5a74ac4e0301") == {:ok, 3}
     end
   end
 
