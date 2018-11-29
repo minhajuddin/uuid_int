@@ -1,12 +1,13 @@
 defmodule UUIDInt do
   @moduledoc """
-  Documentation for UuidInt.
+  UUIDInt allows you to encode an integer into a UUID and decode it back from
+  the generated UUID.
   """
 
   @uuid_bit_size 16 * 8
 
   @doc """
-  Hello world.
+  Encode an unsigned integer into a UUID
 
   ## Examples
 
@@ -14,6 +15,8 @@ defmodule UUIDInt do
       {:ok, "86666835-06aa-cd90-0bbd-5a74ac4e0308"}
       iex> UUIDInt.encode(4322343)
       {:ok, "07bfef02-a615-2803-edf7-8bc841f42718"}
+      iex> UUIDInt.encode(1329227995784915872903807060280344575)
+      {:ok, "ffffffff-ffff-ffff-ffff-ffffffffff78"}
 
   """
   ## prefix (md5(uint)) + uint (var) + bit size of uint (2 chars)
@@ -26,6 +29,19 @@ defmodule UUIDInt do
     UUIDInt.UUIDHex.encode(prefix <> input_bytes <> << bitsize::size(8) >> )
   end
 
+  @doc """
+  Decode an uuid_int into an unsigned integer
+
+  ## Examples
+
+      iex> UUIDInt.decode("86666835-06aa-cd90-0bbd-5a74ac4e0308")
+      {:ok, 3}
+      iex> UUIDInt.decode("07bfef02-a615-2803-edf7-8bc841f42718")
+      {:ok, 4322343}
+      iex> UUIDInt.decode("ffffffff-ffff-ffff-ffff-ffffffffff78")
+      {:ok, 1329227995784915872903807060280344575}
+
+  """
   def decode(uuid) do
     {:ok, << prefix_with_uint::binary-size(15), size::size(8) >>} = UUIDInt.UUIDHex.decode(uuid)
 
